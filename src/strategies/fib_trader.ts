@@ -38,6 +38,7 @@ export class FibTrader {
 
     private getIndicators = async () => {
         await getKlines({ symbol: this.symbol, interval: this.interval }).then(kline => {
+            console.log(kline.slice(-10));
             const zigzag = getZigZags(kline, 5);
             console.log(zigzag.map(zz => { return { ...zz, t: new Date(zz.t).toLocaleTimeString() } }));
             let p1 = zigzag[zigzag.length - 2].v;
@@ -93,42 +94,6 @@ export class FibTrader {
         }
     }
 
-    private updateLimitOrder = async () => {
-        const openOrders = (await QueryOpenOrdersBySymbol({ symbol: this.symbol }))?.data?.rows;
-        console.log('checking if limit order needs update');
-        // if (openOrder && (openOrder.priceRp != `${this.entry}` || openOrder.takeProfitRp != `${this.takeProfit}` || openOrder.stopLossRp != `${this.stopLoss}`) ) {
-
-        const positions = (await QueryAccountPositions({ currency: "USDT" }))?.data?.positions.filter((p: any) => p.side != "None");
-        console.log(positions);
-
-
-        const solBalance = positions.size;
-        let updateOrders = [false, false, false];
-
-        const o382 = openOrders?.find(o => o.priceRp == `${this.retracements?.r0382}`);
-        if (o382 == null && solBalance < 0.75) {
-            updateOrders[0] = true;
-        }
-        const o500 = openOrders?.find(o => o.priceRp == `${this.retracements?.r0500}`);
-        if (o500 == null && solBalance < 2.25) {
-            updateOrders[1] = true;
-        }
-        const o618 = openOrders?.find(o => o.priceRp == `${this.retracements?.r0618}`);
-        if (o618 == null && solBalance < 5) {
-            updateOrders[2] = true;
-        }
-
-        // return;
-
-        if (updateOrders.includes(true)) {
-            console.log('updating limit orders');
-            await CancelAllOrders({ symbol: this.symbol });
-            if (updateOrders[0]) await this.placeLimitOrder('r0382', 0.75);
-            if (updateOrders[1]) await this.placeLimitOrder('r0500', 1.50);
-            if (updateOrders[2]) await this.placeLimitOrder('r0618', 3.75);
-        }
-    }
-
     public run = async () => {
         await this.initialize();
         // while (true) {
@@ -138,12 +103,12 @@ export class FibTrader {
         // console.log(res);
 
         // Get account balance
-        console.log(await QueryAccountPositions({ currency: "USDT" }));
+        // console.log(await QueryAccountPositions({ currency: "USDT" }));
         const balance = (await QueryAccountPositions({ currency: "USDT" }))?.data?.account?.accountBalanceRv;
         console.log(`balance: ${balance}`);
         // Get account positions
         const positions = (await QueryAccountPositions({ currency: "USDT" }))?.data?.positions.filter((p: any) => p.side != "None");
-        console.log(`positions: ${positions}`);
+        // console.log(`positions: ${positions}`);
 
         const entry = this.retracements?.r0618;
         const stop = this.retracements?.r1000;
@@ -156,12 +121,17 @@ export class FibTrader {
         if (true || positions.length <= 0) {
             // If no open orders, place limit order
             const openOrders = (await QueryOpenOrdersBySymbol({ symbol: this.symbol }))?.data?.rows;
-            console.log(`open orders: ${openOrders}`);
+            // console.log(`open orders: ${openOrders}`);
             if (openOrders == undefined) {
+                // // // Place limit orders
+                // await this.placeLimitOrder('r0382', size / 3);
+                // await this.placeLimitOrder('r0500', size / 3);
+                // await this.placeLimitOrder('r0618', size / 3);
+
                 // Place limit orders
-                await this.placeLimitOrder('r0382', size / 3);
-                await this.placeLimitOrder('r0500', size / 3);
                 await this.placeLimitOrder('r0618', size / 3);
+                await this.placeLimitOrder('r0700', size / 3);
+                await this.placeLimitOrder('r0786', size / 3);
             } else {
                 // If open orders, update limit order
                 // await this.updateLimitOrder();
@@ -176,21 +146,10 @@ export class FibTrader {
 }
 
 (async () => {
+    // TODO: Print order prices
+    // TODO: PRESS ANY KEY TO CONTINUE
 
-    // risk = 0.10
-    // risk from 0.618 - 1.00 = 10%
-
-    // pos size at 0.618 = price618 - price100 = distance
-    // or pos size at 0.500 = price500 - price100 = distance
-
-    // distance = price618 - price100
-    // risk = balance * 0.10
-    // size = distance / risk
-    // qty618 = size * 0.33
-    // qty500 = size * 0.33
-    // qty382 = size * 0.33
-
-    const client = new FibTrader("SOLUSDT", "Buy", "1d", 0.10);
+    const client = new FibTrader("AVAXUSDT", "Buy", "1h", 0.10);
     await client.run().catch(e => { console.log(e); });
-        await sleep(500);
+    await sleep(500);
 })();
