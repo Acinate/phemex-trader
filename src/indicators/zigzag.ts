@@ -7,7 +7,6 @@ export const getZigZags = (kline: KLine[], length: number = 10): ZigZag[] => {
     let changed = false;
     let prevDir = 0;
     for (let i = kline.length - 1; i >= 0; i--) {
-        // lookback 10 periods for pivot high, pivot low
         let sh = kline[i];
         let sl = kline[i];
         for (let j = i; j > i - length && j > 0; j--) {
@@ -40,7 +39,7 @@ export const getZigZags = (kline: KLine[], length: number = 10): ZigZag[] => {
                     const last = zigzags[zigzags.length - 1];
                     const value = dir == 1 ? ph : pl;
                     // @ts-ignore
-                    if (last.v * dir > value * dir) {
+                    if (dir == 0 || last.v * dir > value * dir) {
                         skip = true;
                     } else {
                         zigzags.pop();
